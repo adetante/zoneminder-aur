@@ -9,91 +9,88 @@
 # Contributor (Parabola): André Silva    <emulatorman@lavabit.com>
 # Contributor: Charles Spence IV         <cspence@unomaha.edu>
 # Contributor: Joe Julian                <me@joejulian.name>     
+# Contributor: Antoine Detante           <antoine.detante@gmail.com>
 # Orginally based on a Debian Squeeze package
-_pkgname=zoneminder
 pkgname=zoneminder
 pkgver=1.30.4
 pkgrel=1
 pkgdesc='Capture, analyse, record and monitor video security cameras'
-arch=( i686 x86_64 mips64el arm armv7h )
+arch=( x86_64 )
 backup=( etc/zm.conf )
-url="https://github.com/ZoneMinder/ZoneMinder/releases"
+url="https://github.com/ZoneMinder/zoneminder/releases"
 license=( GPL )
 depends=(
-    mariadb perl-dbd-mysql perl-dbi
-    apache php php-apache php-gd php-mcrypt perl-php-serialization
-    perl-libwww perl-net-sftp-foreign
-    ffmpeg vlc perl-sys-mmap
-    gnutls polkit
-    perl-expect perl-archive-zip perl-date-manip
-    perl-mime-lite perl-mime-tools
+  libjpeg-turbo
+  ffmpeg
+  mariadb
+  nginx fcgiwrap php-fpm php-gd php-apcu php-apcu-bc
+  perl-dbi perl-dbd-mysql perl-date-manip perl-sys-mmap perl-libwww perl-lwp-protocol-https perl-sys-meminfo perl-sys-cpu
+  polkit
 )
 makedepends=(
-    cmake netpbm git 
+  cmake
+  git
 )
 optdepends=(
-    'php-apcu-bci: Bring back the API for android control'
-    netpbm
-    cambozola
-    perl-time-modules
-    perl-x10
-    perl-astro-suntime
 )
-install=$_pkgname.install
+#install=$pkgname.install
 
 source=(
-    https://github.com/ZoneMinder/ZoneMinder/archive/$pkgver.tar.gz
-    httpd-zoneminder.conf
-    zoneminder.service
-    uio.patch
-    fabs.patch
-    zoneminder-tmpfile.conf
+  https://github.com/ZoneMinder/zoneminder/archive/$pkgver.tar.gz
+  backport-97380f0.patch
+  issue-1919.patch
+  zoneminder-tmpfile.conf
+  zoneminder.service
+  zoneminder-php.ini
+  zoneminder-nginx.conf
 )
-sha256sums=('9451683808867c2382325dd8dac6049c138fa9d407fb81d29ecf5598dc75d581'
-            'ff7382b38ac07dadead0ad4d583e3dbcf8da4aaa06b76d048ee334f69f95db67'
-            '043d77a995553c533d62f48db4b719d29cf6c7074f215d866130e97be57ed646'
-            'd1816cac69be5e807d22c37fcbe6fef99e38151a5c71233b875c0ebf101fb460'
-            'fd20faed09eaf825933c2a87b1d04febf99d183b2b36b0041df1e2b2990c49c2'
-            'cc8af737c3c07750fc71317c81999376e4bbb39da883780164a8747b3d7c95a7')
+sha256sums=(
+  '879f57fdb1e013b3f17b1b0e87c5935683dad14922951d5f29d1370c1e490f2e'
+  '162763ed8d834ea69d076a428217e7896c9e242815c666d60fce1f6835209e7d'
+  '641ff91727d1c3f60e225ad5c9aa52ea1f3508290ddf4308265c4e7d99ab9d77'
+  'e2de24ba7fe940daa0ab525128ab40ec1d04163279fe21f848b6edda3d852ef9'
+  'a6043ed2a166c8e2783589f4052961400ee196019f9b79df73a758bd0794a0ec'
+  '5e9e149f55f8acc6289e5129221f2ab60a7c6fbff45d5ef8832f66325552ee1b'
+  'a52472b0a5bda6ae056b312b29fa42cbed940035861d39567cb28b14c980f201'
+)
 
 
 prepare () {
-    cd $srcdir/ZoneMinder-$pkgver/web/api/app/Plugin/
-    if [ ! -d "crud" ]; then
-    git clone -b 3.0 https://github.com/FriendsOfCake/crud.git
-    mkdir -p Crud
-    mv  crud/* Crud
+    cd $srcdir/zoneminder-$pkgver/web/api/app/Plugin/
+    if [ ! -d "Crud/.git" ]; then
+    git clone -b 3.0 https://github.com/FriendsOfCake/crud.git Crud
     fi
-    patch $srcdir/ZoneMinder-$pkgver/src/zm_image.cpp < $srcdir/fabs.patch
-    patch $srcdir/ZoneMinder-$pkgver/src/zm_comms.h < $srcdir/uio.patch
+    patch $srcdir/zoneminder-$pkgver/src/zm_comms.h < $srcdir/issue-1919.patch
+    patch $srcdir/zoneminder-$pkgver/src/zm_image.cpp < $srcdir/backport-97380f0.patch
 }
 
 build() {
-   cd $srcdir/ZoneMinder-$pkgver
+   cd $srcdir/zoneminder-$pkgver
    
-   cmake -DCMAKE_INSTALL_PREFIX=/usr \
-          -DZM_PERL_SUBPREFIX=/lib/perl5 \
-          -DZM_WEBDIR=/srv/http/zoneminder \
-          -DZM_CGIDIR=/srv/http/cgi-bin \
-          -DZM_WEB_USER=http \
-          -DZM_CONTENTDIR=/var/cache/zoneminder \
-          -DZM_LOGDIR=/var/log/zoneminder \
-          -DZM_RUNDIR=/run/zoneminder \
-          -DZM_TMPDIR=/var/lib/zoneminder/temp \
-          -DZM_SOCKDIR=/var/lib/zoneminder/sock .
+  cmake -DCMAKE_INSTALL_PREFIX=/usr \
+        -DZM_PERL_SUBPREFIX=/lib/perl5 \
+        -DZM_WEBDIR=/srv/zoneminder/www \
+        -DZM_CGIDIR=/srv/zoneminder/cgi-bin \
+        -DZM_WEB_USER=http \
+        -DZM_WEB_GROUP=http \
+        -DZM_CONTENTDIR=/var/cache/zoneminder \
+        -DZM_LOGDIR=/var/log/zoneminder \
+        -DZM_RUNDIR=/run/zoneminder \
+        -DZM_TMPDIR=/var/lib/zoneminder/temp \
+        -DZM_SOCKDIR=/var/lib/zoneminder/sock .
      
-    make V=0
+    make
 } 
      
 package() {
 
-    cd $srcdir/ZoneMinder-$pkgver
+    cd $srcdir/zoneminder-$pkgver
 
     DESTDIR=$pkgdir make install
 
     # Change Polkit directory permissions to Arch Linux policy
-    chmod -v 700 $pkgdir/usr/share/polkit-1/rules.d/
-    chown -v polkitd $pkgdir/usr/share/polkit-1/rules.d/
+    chgrp -v polkitd $pkgdir/usr/share/polkit-1/rules.d/
+    chmod -v 750 $pkgdir/usr/share/polkit-1/rules.d/
 
     # BEGIN CREATE_ZONEMINDER_DIRECTORIES
     mkdir -pv           $pkgdir/var/{cache/zoneminder,log/zoneminder}
@@ -108,38 +105,37 @@ package() {
     chown -v http.http $pkgdir/var/lib/zoneminder/temp
     
     chown -v  http.http $pkgdir/etc/zm.conf 
-    chmod 0700          $pkgdir/etc/zm.conf
+    chmod 600           $pkgdir/etc/zm.conf
     # END CREATE_ZONEMINDER_DIRECTORIES
 
     # Make content directories in /var/cache/zoneminder and to link them in /srv/http/zoneminder
     for i in events images temp; do
-        mkdir              $pkgdir/var/cache/$_pkgname/$i
-        chown -v http.http $pkgdir/var/cache/$_pkgname/$i
-        ln -s                     /var/cache/$_pkgname/$i $pkgdir/srv/http/$_pkgname/$i
-        chown -v --no-dereference http.http               $pkgdir/srv/http/$_pkgname/$i
+        mkdir              $pkgdir/var/cache/zoneminder/$i
+        chown -v http.http $pkgdir/var/cache/zoneminder/$i
+        ln -s                     /var/cache/zoneminder/$i $pkgdir/srv/zoneminder/www/$i
+        chown -v --no-dereference http.http               $pkgdir/srv/zoneminder/www/$i
     done
 
     # Create a link to the Zoneminder cgi binaries
-    ln -sv /srv/http/cgi-bin $pkgdir/srv/http/$_pkgname
+    ln -sv /srv/zoneminder/cgi-bin $pkgdir/srv/zoneminder/www
 
-    chown -h http.http $pkgdir/srv/http/{cgi-bin,$_pkgname,$_pkgname/cgi-bin}
-
-    # Link Cambozola
-    # ln -s /usr/share/cambozola/cambozola.jar $pkgdir/srv/http/$_pkgname
+    chown -h http.http $pkgdir/srv/zoneminder/{cgi-bin,www,www/cgi-bin}
 
     # Install configuration files
-    mkdir -p                                        $pkgdir/etc/httpd/conf/extra
-    install -D -m 644 $srcdir/httpd-$_pkgname.conf  $pkgdir/etc/httpd/conf/extra
-    
-    mkdir -p                                        $pkgdir/usr/lib/systemd/system
-    install -D -m 644 $srcdir/$_pkgname.service     $pkgdir/usr/lib/systemd/system
-    
-    install -D -m 644 COPYING                       $pkgdir/usr/share/license/$_pkgname
-    install -D -m 644 db/zm*.sql                    $pkgdir/usr/share/$_pkgname/db
-    
-    mkdir -p                                        $pkgdir/usr/share/doc/$_pkgname
-    # install -D -m 644 $srcdir/README              $pkgdir/usr/share/doc/$_pkgname
+    #mkdir -p                                        $pkgdir/etc/httpd/conf/extra
+    #install -D -m 644 $srcdir/httpd-$_pkgname.conf  $pkgdir/etc/httpd/conf/extra
 
-    install -Dm644 ../zoneminder-tmpfile.conf "$pkgdir"/usr/lib/tmpfiles.d/zoneminder.conf
+    mkdir -p                                         $pkgdir/etc/php/conf.d
+    install -D -m 644 $srcdir/zoneminder-php.ini     $pkgdir/etc/php/conf.d/zoneminder.conf
+
+    mkdir -p                                         $pkgdir/etc/nginx
+    install -D -m 644 $srcdir/zoneminder-nginx.conf  $pkgdir/etc/nginx/zoneminder.conf
+    
+    mkdir -p                                         $pkgdir/usr/lib/systemd/system
+    install -D -m 644 $srcdir/zoneminder.service     $pkgdir/usr/lib/systemd/system
+    
+    install -D -m 644 $srcdir/zoneminder-$pkgver/COPYING $pkgdir/usr/share/license/$pkgname
+    
+    install -Dm644 $srcdir/zoneminder-tmpfile.conf $pkgdir/usr/lib/tmpfiles.d/zoneminder.conf
 
 }

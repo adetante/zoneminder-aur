@@ -1,0 +1,13 @@
+--- src/zm_comms.h	2017-05-09 16:54:48.000000000 +0200
++++ src/zm_comms.fix.h	2018-05-05 16:20:39.830788824 +0200
+@@ -30,9 +30,9 @@
+ 
+ #include <set>
+ #include <vector>
++#include <sys/uio.h>
+ 
+ #if defined(BSD)
+-#include <sys/uio.h>
+ #include <sys/socket.h>
+ #include <netinet/in.h>
+ #endif

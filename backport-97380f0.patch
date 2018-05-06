@@ -1,0 +1,17 @@
+--- src/zm_image.cpp	2017-05-09 16:54:48.000000000 +0200
++++ src/zm_image.fix.cpp	2018-05-05 16:26:50.957455490 +0200
+@@ -1658,11 +1658,9 @@
+       {
+         uint8_t *psrc = images[j]->buffer+c;
+ 
+-#ifndef SOLARIS
+-        if ( (unsigned)abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
+-#else
+-        if ( (unsigned)std::abs((*psrc)-RGB_VAL(ref_colour,c)) >= RGB_VAL(threshold,c) )
+-#endif
++        unsigned int diff = ((*psrc)-RGB_VAL(ref_colour,c)) > 0 ? (*psrc)-RGB_VAL(ref_colour,c) : RGB_VAL(ref_colour,c) - (*psrc);
++
++        if (diff >= RGB_VAL(threshold,c))
+         {
+           count++;
+         }

@@ -1,7 +1,7 @@
 [Unit]
 Description=ZoneMinder CCTV recording and security system
-After=network.target mysqld.service httpd.service
-Requires=mysqld.service httpd.service
+After=network.target mariadb.service nginx.service fcgiwrap.socket
+Requires=mariadb.service nginx.service php-fpm.service fcgiwrap.socket
 
 [Service]
 User=http
